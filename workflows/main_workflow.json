@@ -1,0 +1,522 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text}}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "ticker",
+                "value": "={{ $json.ticker }}"
+              },
+              {
+                "name": "quarter",
+                "value": "={{ $json.quarter }}"
+              },
+              {
+                "name": "date",
+                "value": "={{ $json.date }}"
+              },
+              {
+                "name": "section",
+                "value": "={{ $json.section }}"
+              },
+              {
+                "name": "speaker",
+                "value": "={{ $json.speaker }}"
+              },
+              {
+                "name": "year",
+                "value": "={{ $json.year }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -656,
+        1888
+      ],
+      "id": "9932b783-659e-43e7-b982-8b4191883c35",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "jsCode": "const chunks = $input.first().json.body;\nreturn chunks.map(chunk => ({ json: chunk }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1072,
+        1664
+      ],
+      "id": "2f5193ad-4fce-42d2-8dc3-8e9188693cc9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "content": "Used to insert text files to the Pinecone DB (transcripts). Each file has its own metadata of the quarter, year, ticker, speaker. This helps with filtering later on"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        1648
+      ],
+      "id": "c4f49a8a-deda-47cd-a2b7-5d451126d8e4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "You can send a message of a ticker symbol, ie AMZN",
+        "height": 80
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1776,
+        1296
+      ],
+      "id": "fe121e63-12e3-49be-9df5-b6589782fb4b",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Call agent using POST request on front-end of website",
+        "height": 80
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1792,
+        1104
+      ],
+      "id": "17de82bb-9715-4484-a584-5bdbf3746d4c",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "dbmain",
+          "mode": "list",
+          "cachedResultName": "dbmain"
+        },
+        "options": {
+          "clearNamespace": false,
+          "pineconeNamespace": ""
+        }
+      },
+      "id": "1bd5761e-d49b-436e-b3ad-fc750ce35058",
+      "name": "Insert into Transcript DB",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -848,
+        1664
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "IMdk5qhH6RWA02v3",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "grok-4-1-fast-non-reasoning",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatXAiGrok",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        1344
+      ],
+      "id": "ade564fa-3498-414d-8742-3f5ad8c59f4e",
+      "name": "xAI Grok Chat Model",
+      "credentials": {
+        "xAiApi": {
+          "id": "h4tFboQjfTg820nT",
+          "name": "xAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -848,
+        1888
+      ],
+      "id": "436d4b14-f1b3-48a8-9727-e1ebb121d151",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "DYQLACRK6LYwfDC9",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "7d2b11a4-1593-454a-867c-dd7788e07799",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1296,
+        1664
+      ],
+      "id": "8542537e-1228-4b2d-a01d-b983bb0de8b2",
+      "name": "Webhook2",
+      "webhookId": "7d2b11a4-1593-454a-867c-dd7788e07799"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1296,
+        1328
+      ],
+      "id": "a16b8058-86cb-4385-8dda-8eefb49dc79c",
+      "name": "When chat message received",
+      "webhookId": "34abe2ca-d594-4c5d-bda1-153265333870"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zYQtlFnrHsJQu3Wv",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zYQtlFnrHsJQu3Wv",
+          "cachedResultName": "Parallel sub-workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "requestId_transcript": "={{ $json.requestId_transcript }}",
+            "output_ticker": "={{ $json.output.ticker }}",
+            "requestId_peers": "={{ $('Organize Input').item.json.requestId_peers }}",
+            "output_peers": "={{ $('Organize Input').item.json.output.peers }}"
+          },
+          "matchingColumns": [
+            "requestId_transcript",
+            "output_ticker",
+            "requestId_peers",
+            "output_peers"
+          ],
+          "schema": [
+            {
+              "id": "requestId_transcript",
+              "displayName": "requestId_transcript",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "output_ticker",
+              "displayName": "output_ticker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "requestId_peers",
+              "displayName": "requestId_peers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "output_peers",
+              "displayName": "output_peers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -384,
+        1232
+      ],
+      "name": "Call Parallel sub-workflow",
+      "id": "f1203988-7b88-4ebf-a14a-7ce2315d50ff"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -160,
+        1232
+      ],
+      "id": "6763c2ad-ad1b-455b-9f33-8f934f26e576",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "content": "The technique I was using for parallelization was causing problems with \"Unused Respond to Webhook node found in the workflow\" when using webhook trigger, because it was seeing this not being used directly for the trigger and erroring. To fix, I first have to create a sub-workflow that performs parallel action, then add a respond to webhook at the end to trick it into being happy.",
+        "height": 112,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -576,
+        1072
+      ],
+      "typeVersion": 1,
+      "id": "c6f0306a-f4ef-47af-bd04-670cadc530f1",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        -912,
+        1344
+      ],
+      "id": "1cdd659b-4a51-4676-a734-3c8afc7362a9",
+      "name": "Identify Available Peers"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ed36debd-2f06-448c-b98e-ef138d3f692a",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1296,
+        1120
+      ],
+      "id": "ec76f7e2-93ec-4a28-b782-5914f1354f54",
+      "name": "Fontend Webhook",
+      "webhookId": "ed36debd-2f06-448c-b98e-ef138d3f692a"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput || $json.body.chatInput }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an equity research assistant. Given a stock ticker, identify the 3 closest publicly traded U.S. peers by business model and industry.\nYou will use this URL to perform a GET Request: https://api.github.com/repos/gselez6761/agentic-ai-challenge-data/contents/data/income_statements\nAmong the folders returned by this URL, here are the rules:\nPeer Selection Criteria (in order of priority):\n\nPeers must compete directly with the target company in at least 2 major revenue segments. If a candidate company does not share at least 2 core business lines with the target, it is NOT a valid peer.\nPeers should be in the same industry or sector. A restaurant chain is not a peer to a tech company. A bank is not a peer to a retailer. An oil company is not a peer to a SaaS platform.\nPeers should be comparable in business model — if the target is a platform/marketplace, pick other platforms/marketplaces. If the target is a subscription SaaS company, pick other subscription SaaS companies.\nPeers should be similar in scale where possible (large-cap to large-cap, mid-cap to mid-cap), but business model overlap is more important than size.\n\nDisqualification Rules:\n\nDo NOT pick a company just because it is large or well-known. McDonald's is not a peer to Amazon.\nDo NOT pick conglomerates or diversified companies unless the target company is one.\nDo NOT pick companies from a completely different industry even if they share one minor business line (e.g., both having \"subscription services\" does not make Netflix a peer to Costco).\nAsk yourself: \"Would an equity research analyst at a bank put these two companies in the same coverage universe?\" If not, do not select it.\n\nReturn ONLY a JSON object, no explanation, no markdown.\nOutput format:\n{\"ticker\": \"<INPUT_TICKER>\", \"peers\": [\"<PEER1>\", \"<PEER2>\", \"<PEER3>\"]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1024,
+        1120
+      ],
+      "id": "7bcd7607-fcb4-4b8a-a64b-762b703f290a",
+      "name": "Peer Retrieval Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// for (const item of $input.all()) {\n//   item.json.requestId = $execution.id + '_' + Date.now();\n// }\n\n// return $input.all();\nfor (const item of $input.all()) {\n  item.json.requestId_transcript = $execution.id + '_transcript_' + Date.now();\n  item.json.requestId_peers = $execution.id + '_peers_' + (Date.now() + 1);\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        1232
+      ],
+      "id": "20be1e0b-7b02-4b61-8750-fde3830484e1",
+      "name": "Organize Input"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"ticker\": \"AMZN\",\n\t\"peers\": [\"WMT\", \"SHOP\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        1344
+      ],
+      "id": "103b6f9a-55c0-4e5e-a9a9-928b42a4552c",
+      "name": "format_final_json_response"
+    }
+  ],
+  "connections": {
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert into Transcript DB",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert into Transcript DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert into Transcript DB": {
+      "main": [
+        []
+      ]
+    },
+    "xAI Grok Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Peer Retrieval Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert into Transcript DB",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Peer Retrieval Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Parallel sub-workflow": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Available Peers": {
+      "ai_tool": [
+        [
+          {
+            "node": "Peer Retrieval Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fontend Webhook": {
+      "main": [
+        [
+          {
+            "node": "Peer Retrieval Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Peer Retrieval Agent": {
+      "main": [
+        [
+          {
+            "node": "Organize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Organize Input": {
+      "main": [
+        [
+          {
+            "node": "Call Parallel sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format_final_json_response": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Peer Retrieval Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "ca45e47c532fd0657199f7168bf9a76ce36a6f0c05bddead2f2dd1016da4f7cd"
+  }
+}

@@ -1,0 +1,286 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "model": "grok-4-1-fast-reasoning",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatXAiGrok",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -128
+      ],
+      "id": "5e153afe-5a90-4b49-a497-99929dfcdf0c",
+      "name": "xAI Grok Chat Model",
+      "credentials": {
+        "xAiApi": {
+          "id": "h4tFboQjfTg820nT",
+          "name": "xAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        96
+      ],
+      "id": "f57fd051-8de1-4fc2-bac3-f01d60bb7791",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "DYQLACRK6LYwfDC9",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Peers: {{ $json.body.peers }} Target Ticker: {{ $json.body.ticker }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a peer comparison and industry trends agent for equity research. You receive a list of peer ticker symbols and the target company ticker, retrieve their earnings transcripts and financial statements, and produce a structured cross-company thematic analysis plus a competitive landscape table.\nStep 1: Retrieve Transcript Data\nFor EACH peer ticker:\n\nCall the Query Data Tool with the ticker to retrieve earnings transcript chunks.\n\nStep 2: Retrieve Financial Statements\nFor EVERY company in this analysis (the target ticker AND all peer tickers):\n\nCall the Financial Statement API for each ticker individually. GET https://raw.githubusercontent.com/gselez6761/agentic-ai-challenge-data/main/data/income_statements/{TICKER}/income_statement_{TICKER}.json\nYou MUST make a separate HTTP call for EACH ticker. Do not skip any.\nWAIT for each response and READ the actual JSON data returned before proceeding.\n\nStep 3: Identify Cross-Company Themes\nAnalyze all retrieved transcripts together. Your job is NOT to summarize each company individually — it is to identify themes that appear ACROSS multiple companies. Look for:\n\nLanguage or topics that multiple management teams are discussing\nShared tailwinds or headwinds across the peer set\nAreas where one company is diverging from the group consensus\nNew topics that appeared this quarter across multiple calls vs. prior quarters\nCommon demand signals, investment priorities, or risk language\n\nStep 4: Build Competitive Landscape\nCRITICAL: You must ONLY use numbers that appear in the actual JSON responses from Step 2. Do NOT estimate, round, approximate, or use numbers from the transcript. If you cannot find a segment's revenue in the API response, set has_segment to false.\nUsing the income statement JSON data retrieved in Step 2:\n\nRead each company's income statement JSON and identify the segment-level revenue line items\nFind segments that appear in at least 2 companies' income statements\nFor each shared segment, extract the EXACT revenue figures from the two most recent fiscal years in the JSON\nIf a company does not report a comparable segment, set has_segment to false, segment_name to \"N/A\", revenue to \"N/A\", revenue_prior_year to \"N/A\", and yoy_growth to 0\nThe companies array must list the target ticker first, followed by peer tickers\nIdentify the most obvious common segments.\n\nSegment selection strategy: You must ensure every company in the companies array has has_segment = true for AT LEAST one offering. After identifying candidate segments, check: does every company appear in at least one row? If any company would show \"No Data\" across ALL rows, you MUST add a segment where that company participates — even if it means adding a 4th or 5th segment. Work backwards from each company's income statement to find what they DO report, then match it to equivalent segments at other companies. For example, if AMZN reports \"Online stores\" and WMT reports \"E Commerce\", those map to the same \"E-commerce / Online Retail\" category.\n\nStep 5: Produce Output\nindustry_trends:\n\nthemes: array of exactly 3 cross-company themes. Each needs:\n\ncategory: \"dominant\", \"emerging\", or \"persistent\"\ntitle: short descriptive title (4-8 words)\ndetail: 2-3 sentences with specific data points from multiple companies\nmentioned_by: array of ticker symbols that discussed this theme\n\n\nsources: array formatted as \"{TICKER} {QUARTER}\" (e.g. \"GOOG Q4'25\")\n\ncompetitive_landscape:\n\ncompanies: array of ticker symbols, target first then peers\nofferings: array of shared segments, each with category and positions array. These must be actual product/service segments, not regions.\ndata_source: the URL pattern used\n\nOutput Schema\nReturn ONLY valid JSON matching this structure:\n{\n  \"industry_trends\": {\n    \"themes\": [\n      {\n        \"category\": \"dominant|emerging|persistent\",\n        \"title\": \"string\",\n        \"detail\": \"string\",\n        \"mentioned_by\": [\"string\"]\n      }\n    ],\n    \"sources\": [\"string\"]\n  },\n  \"competitive_landscape\": {\n    \"companies\": [\"TARGET\", \"PEER1\", \"PEER2\"],\n    \"offerings\": [\n      {\n        \"category\": \"string\",\n        \"positions\": [\n          {\n            \"segment_name\": \"string\",\n            \"revenue\": \"string\",\n            \"revenue_prior_year\": \"string\",\n            \"yoy_growth\": 0.0,\n            \"has_segment\": true\n          }\n        ]\n      }\n    ],\n    \"data_source\": \"https://raw.githubusercontent.com/gselez6761/agentic-ai-challenge-data/main/data/income_statements/{TICKER}/income_statement_{TICKER}.json\"\n  }\n}\nRules:\n\nReturn exactly 3 themes with a mix of categories.\nEvery theme must be supported by at least 2 tickers in mentioned_by.\nEvery detail must include specific numbers or named initiatives from at least 2 companies.\nThe positions array must always have the same length as the companies array, in the same order.\nEVERY revenue figure and yoy_growth number in competitive_landscape MUST come directly from the income statement JSON retrieved via the API. Do NOT use numbers from transcripts, do NOT estimate, do NOT hallucinate. If a number is not in the API response, set has_segment to false.\nyoy_growth must be a number, not a string (e.g. 16.2, not \"16.2%\").\nIf no transcript data exists for a peer, note it in sources as \"{TICKER} — no data\".\nDo NOT produce per-company summaries.\nThe current year is 2026. Return only valid JSON. No markdown, no commentary, no backticks.",
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        432,
+        -352
+      ],
+      "id": "991ca993-6f79-4562-957e-4e71d34f7e59",
+      "name": "AI Agent",
+      "executeOnce": false,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Retrieves exactly what the agent requests, following filter rules exactly as agent specified.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "dbmain",
+          "mode": "list",
+          "cachedResultName": "dbmain"
+        },
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "ticker",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ticker', 'Stock ticker symbol (e.g., AMZN)') }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c631e358-2d71-40a1-b98f-bc130d760156",
+      "name": "Query Data Tool",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        -128
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "IMdk5qhH6RWA02v3",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"industry_trends\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"themes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"category\": { \"type\": \"string\", \"enum\": [\"dominant\", \"emerging\", \"persistent\"] },\n              \"title\": { \"type\": \"string\" },\n              \"detail\": { \"type\": \"string\" },\n              \"mentioned_by\": {\n                \"type\": \"array\",\n                \"items\": { \"type\": \"string\" }\n              }\n            },\n            \"required\": [\"category\", \"title\", \"detail\", \"mentioned_by\"]\n          }\n        },\n        \"sources\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        }\n      },\n      \"required\": [\"themes\", \"sources\"]\n    },\n    \"competitive_landscape\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"companies\": {\n          \"type\": \"array\",\n          \"description\": \"Column headers: [target ticker, peer1, peer2, ...]. Same order used in all positions arrays.\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"offerings\": {\n          \"type\": \"array\",\n          \"description\": \"Each row is a segment that at least two companies share. Only include segments that appear in multiple companies' income statements.\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"category\": {\n                \"type\": \"string\",\n                \"description\": \"The common segment mapped across companies, e.g. 'Cloud Services', 'Advertising Revenue'\"\n              },\n              \"positions\": {\n                \"type\": \"array\",\n                \"description\": \"One entry per company (same order as companies array). Sourced from income statement data retrieved via the Financial Statement API.\",\n                \"items\": {\n                  \"type\": \"object\",\n                  \"properties\": {\n                    \"segment_name\": {\n                      \"type\": \"string\",\n                      \"description\": \"The exact segment label as it appears in that company's income statement, e.g. 'Amazon Web Services', 'Google Cloud'\"\n                    },\n                    \"revenue\": {\n                      \"type\": \"string\",\n                      \"description\": \"Most recent fiscal year revenue for this segment, e.g. '$105.5B'\"\n                    },\n                    \"revenue_prior_year\": {\n                      \"type\": \"string\",\n                      \"description\": \"Prior fiscal year revenue for this segment, e.g. '$90.8B'\"\n                    },\n                    \"yoy_growth\": {\n                      \"type\": \"number\",\n                      \"description\": \"Year-over-year growth rate as a number, e.g. 16.2 for 16.2% growth, -3.5 for 3.5% decline\"\n                    },\n                    \"has_segment\": {\n                      \"type\": \"boolean\",\n                      \"description\": \"Whether this company reports a comparable segment. If false, set segment_name to 'N/A', revenue to 'N/A', revenue_prior_year to 'N/A', and yoy_growth to 0.\"\n                    }\n                  },\n                  \"required\": [\"segment_name\", \"revenue\", \"revenue_prior_year\", \"yoy_growth\", \"has_segment\"]\n                }\n              }\n            },\n            \"required\": [\"category\", \"positions\"]\n          }\n        },\n        \"data_source\": {\n          \"type\": \"string\",\n          \"description\": \"The URL pattern used to retrieve income statements\",\n          \"const\": \"https://raw.githubusercontent.com/gselez6761/agentic-ai-challenge-data/main/data/income_statements/{TICKER}/income_statement_{TICKER}.json\"\n        }\n      },\n      \"required\": [\"companies\", \"offerings\", \"data_source\"]\n    }\n  },\n  \"required\": [\"industry_trends\", \"competitive_landscape\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        -144
+      ],
+      "id": "32b36a5e-ffe4-4936-aff9-faa1a9528ca0",
+      "name": "format_final_json_response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ \n{\n  \"finishedItemId\": $json.body.requestItemId\n}\n}}",
+        "options": {}
+      },
+      "id": "66a212f9-9792-4dfc-9df9-e36f076aecc7",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        176,
+        -352
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "peer-sub-workflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        -352
+      ],
+      "id": "62ee3631-2bb1-414c-a0f8-27097c99e57d",
+      "name": "Webhook",
+      "webhookId": "72d1f179-aef9-496e-88a9-342e86235f3f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Webhook').item.json.headers.callbackurl }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "finishedItemId",
+              "value": "={{ $('Webhook').item.json.body.requestItemId }}"
+            },
+            {
+              "name": "peerOutput",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c05c2cb4-4c37-4ee3-a21c-e727d8fa7116",
+      "name": "Call Resume on Parent Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1056,
+        -352
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.2,
+      "waitBetweenTries": 3000,
+      "notes": "The callback resumes the parent workflow and reports which item finished.  There could be a race condition if the parent workflow was just resumed by a different sub-workflow but hasn't entered a webhook-wait again yet.  The delay and retry mitigates for the possibility that multiple subtasks complete and call back at once."
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retrieves fundamental stock information including industry, sector, and economic moat for a given ticker. Input should be the ticker symbol. Returns JSON with moat, industry, and sector fields.",
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', `Used for retrieving stock industry, sector, moat`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        -144
+      ],
+      "id": "31f3a53f-acdb-4de5-8fd5-7c5529a81297",
+      "name": "Get Financial Statement"
+    }
+  ],
+  "connections": {
+    "xAI Grok Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Query Data Tool",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Call Resume on Parent Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Data Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format_final_json_response": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Financial Statement": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "ca45e47c532fd0657199f7168bf9a76ce36a6f0c05bddead2f2dd1016da4f7cd"
+  }
+}

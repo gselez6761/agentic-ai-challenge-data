@@ -1,0 +1,286 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "model": "grok-4-1-fast-reasoning",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatXAiGrok",
+      "typeVersion": 1,
+      "position": [
+        -1264,
+        -48
+      ],
+      "id": "0db55a5f-1882-4b9a-bc7c-015ef176b7bb",
+      "name": "xAI Grok Chat Model",
+      "credentials": {
+        "xAiApi": {
+          "id": "h4tFboQjfTg820nT",
+          "name": "xAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1056,
+        160
+      ],
+      "id": "4a2c865b-df1b-476c-bccf-f84b5a43a518",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "DYQLACRK6LYwfDC9",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Retrieves exactly what the agent requests, following filter rules exactly as agent specified.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "dbmain",
+          "mode": "list",
+          "cachedResultName": "dbmain"
+        },
+        "topK": 15,
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "ticker",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ticker', 'Stock ticker symbol (e.g., AMZN)') }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "36c0c0b8-28cf-4a0a-b427-d102d531c00d",
+      "name": "Query Data Tool",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -1136,
+        -48
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "IMdk5qhH6RWA02v3",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"ticker\": { \"type\": \"string\" },\n    \"quarter\": { \"type\": \"string\" },\n    \"executive_summary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"beat_miss\": { \"type\": \"string\", \"enum\": [\"beat\", \"miss\", \"inline\"] },\n        \"metrics\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"label\": { \"type\": \"string\" },\n              \"value\": { \"type\": \"string\" },\n              \"yoy_change\": { \"type\": \"number\" }\n            },\n            \"required\": [\"label\", \"value\", \"yoy_change\"]\n          }\n        },\n        \"headline_takeaway\": { \"type\": \"string\" },\n        \"key_drivers\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"primary_driver\": { \"type\": \"string\" },\n        \"forward_guidance\": { \"type\": \"string\" }\n      },\n      \"required\": [\"beat_miss\", \"metrics\", \"headline_takeaway\", \"key_drivers\", \"primary_driver\", \"forward_guidance\"]\n    },\n    \"key_insights\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"signal\": { \"type\": \"string\", \"enum\": [\"bullish\", \"bearish\", \"neutral\"] },\n          \"title\": { \"type\": \"string\" },\n          \"detail\": { \"type\": \"string\" }\n        },\n        \"required\": [\"signal\", \"title\", \"detail\"]\n      }\n    },\n    \"delta_vs_last_quarter\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"comparison\": { \"type\": \"string\" },\n        \"changes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"type\": { \"type\": \"string\", \"enum\": [\"new\", \"tone_shift\", \"metric_change\", \"dropped\", \"unchanged\"] },\n              \"title\": { \"type\": \"string\" },\n              \"detail\": { \"type\": \"string\" }\n            },\n            \"required\": [\"type\", \"title\", \"detail\"]\n          }\n        }\n      },\n      \"required\": [\"comparison\", \"changes\"]\n    }\n  },\n  \"required\": [\"ticker\", \"quarter\", \"executive_summary\", \"key_insights\", \"delta_vs_last_quarter\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -688,
+        -48
+      ],
+      "id": "5714d98e-a42d-4fc2-94ab-6345fcaddc8e",
+      "name": "format_final_json_response"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "transcript-sub-workflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1472,
+        -272
+      ],
+      "id": "74639b8c-cc7b-4ef3-94e2-efddfd39db28",
+      "name": "Webhook",
+      "webhookId": "d31dc8fc-b141-4770-876a-4e220b33c9fa"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ \n{\n  \"finishedItemId\": $json.body.requestItemId\n}\n}}",
+        "options": {}
+      },
+      "id": "753a7325-730d-4fe5-be2b-07338fea8bf1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        -1248,
+        -272
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Webhook').item.json.headers.callbackurl }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "finishedItemId",
+              "value": "={{ $('Webhook').item.json.body.requestItemId }}"
+            },
+            {
+              "name": "transcriptOutput",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9b67fad3-5699-4163-8065-6c07a8072b8e",
+      "name": "Call Resume on Parent Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -640,
+        -272
+      ],
+      "retryOnFail": true,
+      "typeVersion": 4.2,
+      "waitBetweenTries": 3000,
+      "notes": "The callback resumes the parent workflow and reports which item finished.  There could be a race condition if the parent workflow was just resumed by a different sub-workflow but hasn't entered a webhook-wait again yet.  The delay and retry mitigates for the possibility that multiple subtasks complete and call back at once."
+    },
+    {
+      "parameters": {
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        -848,
+        -48
+      ],
+      "id": "23a0034b-5d5a-4e5f-ba31-830f043537da",
+      "name": "Get Financial Statement Info"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze {{ $json.body.ticker }}.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an equity research transcript analyst. Your job is to analyze a single company's earnings call transcript and produce a structured JSON analysis covering executive summary, key insights, and quarter-over-quarter changes.\n\n## Step 1: Retrieve Data\n- Call the Query Data Tool with the ticker to retrieve earnings transcript chunks from the current quarter.\n- Call the Query Data Tool again with the ticker to retrieve earnings transcript chunks from the previous quarter (use a query like \"{TICKER} previous quarter earnings\" or \"{TICKER} Q[N-1] earnings\").\n- Call the Financial Statement API to retrieve the most recent income statement for the ticker. GET https://raw.githubusercontent.com/gselez6761/agentic-ai-challenge-data/main/data/income_statements/{TICKER}/income_statement_{TICKER}.json\n- You must use the 2 most recent years when calculating change, and the most recent year when retrieving current metrics in the financial statement.\n\n## Step 2: Produce Executive Summary\nFrom the transcript and financial data, extract:\n- beat_miss: \"beat\", \"miss\", or \"inline\" based on whether reported results exceeded, missed, or met expectations as discussed in the call\n- metrics: an array of exactly 4-5 financial metrics in this order:\n  1. Total Revenue (or Net Sales or Sales) — use the top-line revenue figure from the income statement API\n  2. Net Income — use the net income figure from the income statement API\n  3. Operating Margin — calculate from operating income / total revenue from the income statement API, express as a percentage, using % symbol.\n  4. Two fastest-growing segments — identify which business segment(s) had the highest YoY revenue growth rate using the income statement API (e.g. Advertising, Retail, etc.). The label should be the segment name + \"Revenue\".\n  For each metric, provide the label, value (formatted with $ and B/M as appropriate), and yoy_change (calculated from the income statement API using current year vs. prior year) expressed with % symbol. Percentage must be calculated using the whole number, not cutting off to millions, billions, thousands. Use actual reported figures from the financial statement API — do NOT use derived or implied metrics like ARR.\n- headline_takeaway: 2-3 sentence summary of the quarter. First sentence states the beat/miss result with the key numbers. Second sentence identifies the narrative management is pushing. Third sentence names the single biggest risk or concern raised. Identify 3-5 key drivers as specific phrases (2-4 words each) that will be bolded in the frontend — return these in the key_drivers array.\n- primary_driver: one sentence identifying the single most important driver of the quarter's results, with a specific number or growth rate.\n- forward_guidance: paragraph covering ALL forward-looking commentary from the call. Structure as: (1) next quarter revenue/earnings guidance ranges vs. consensus if discussed, (2) full-year targets or revisions, (3) segment-level guidance with specific numbers, (4) operational targets like customer growth, geographic expansion, delivery coverage, capacity plans, (5) CapEx plans and margin commitments, (6) any qualitative outlook statements. Be comprehensive — capture every forward-looking data point mentioned. If a data point was not discussed, skip it. Do not fabricate guidance.\n\n## Step 3: Produce Key Insights\nExtract 4-6 key signals from the earnings call. Each insight needs:\n- signal: \"bullish\", \"bearish\", or \"neutral\"\n- title: short descriptive title (5-8 words)\n- detail: 2-3 sentences with specific numbers, percentages, product names, or speaker attribution. Synthesize in your own analytical voice — do not echo raw transcript text.\n\nInclude a mix of bullish and bearish signals. At minimum include one bearish signal — every company has risks. If analysts pushed back on something in Q&A, that is likely a bearish signal. If management hedged or deflected on a topic, flag it.\n\n## Step 4: Produce Delta vs Last Quarter\nCompare the current quarter's transcript against the previous quarter's transcript. Identify 4-6 changes, each with:\n- type: one of \"new\" (topic appeared for the first time), \"tone_shift\" (same topic but different framing/confidence), \"metric_change\" (quantitative guidance or targets changed), \"dropped\" (topic from last quarter not mentioned this quarter), \"unchanged\" (topic management is still deflecting on or repeating the same language)\n- title: short descriptive title\n- detail: 1-2 sentences explaining what changed. Reference specific language from both quarters where possible.\n\nIf previous quarter transcript data is not available, return an empty changes array and set comparison to \"N/A — prior quarter transcript not available\".\n\n## Output Schema\nReturn ONLY valid JSON matching this structure:\n{\n  \"ticker\": \"string\",\n  \"quarter\": \"string (e.g. Q1 2025)\",\n  \"executive_summary\": {\n    \"beat_miss\": \"beat|miss|inline\",\n    \"metrics\": [\n      { \"label\": \"string\", \"value\": \"string\", \"yoy_change\": \"string\" }\n    ],\n    \"headline_takeaway\": \"string\",\n    \"key_drivers\": [\"string\"],\n    \"primary_driver\": \"string\",\n    \"forward_guidance\": \"string\"\n  },\n  \"key_insights\": [\n    { \"signal\": \"bullish|bearish|neutral\", \"title\": \"string\", \"detail\": \"string\" }\n  ],\n  \"delta_vs_last_quarter\": {\n    \"comparison\": \"string\",\n    \"changes\": [\n      { \"type\": \"new|tone_shift|metric_change|dropped|unchanged\", \"title\": \"string\", \"detail\": \"string\" }\n    ]\n  }\n}\n\nRules:\n- Every field must reference specific numbers, percentages, product names, or named risks. No vague language like \"strong performance\" without supporting data.\n- metrics array must contain exactly 4 items. Choose the 4 most important for this specific company.\n- key_insights array must contain 4-6 items with at least one bearish signal.\n- delta_vs_last_quarter.changes must contain 4-6 items with a mix of types.\n- The current year is 2026. Return only valid JSON. No markdown, no commentary, no backticks.",
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1024,
+        -272
+      ],
+      "id": "6d2edf74-7505-4e19-a1b6-786d7c950f17",
+      "name": "Company Transcript Agent",
+      "executeOnce": false,
+      "alwaysOutputData": false
+    }
+  ],
+  "connections": {
+    "xAI Grok Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Company Transcript Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Query Data Tool",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Data Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Company Transcript Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format_final_json_response": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Company Transcript Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Company Transcript Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Financial Statement Info": {
+      "ai_tool": [
+        [
+          {
+            "node": "Company Transcript Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Transcript Agent": {
+      "main": [
+        [
+          {
+            "node": "Call Resume on Parent Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "ca45e47c532fd0657199f7168bf9a76ce36a6f0c05bddead2f2dd1016da4f7cd"
+  }
+}

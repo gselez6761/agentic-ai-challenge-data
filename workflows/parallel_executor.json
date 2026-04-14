@@ -1,0 +1,407 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "77b778a8-8bac-407b-a484-4983cb6f606f",
+      "name": "Acknowledge Finished",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        752,
+        1248
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "jsCode": "let json = $('If All Finished').first().json;\nif (!json.finishedSet) json.finishedSet = [];\nif (!json.outputs || Array.isArray(json.outputs)) {\n  json.outputs = { \"transcript-agent\": {}, \"peer-agent\": {} };\n}\n\nlet body = $('Webhook Callback Wait').item.json.body;\nlet finishedItemId = body.finishedItemId;\nlet transcriptOutput = body.transcriptOutput;\nlet peerOutput = body.peerOutput;\n\nif (!json.finishedSet.includes(finishedItemId)) {\n  json.finishedSet.push(finishedItemId);\n}\n\nif (finishedItemId && transcriptOutput !== undefined) {\n  json.outputs[\"transcript-agent\"] = transcriptOutput;\n}\n\nif (finishedItemId && peerOutput !== undefined) {\n  json.outputs[\"peer-agent\"] = peerOutput;\n}\n\nreturn [json];"
+      },
+      "id": "43992486-63dc-4e07-ac90-d860235b2dbc",
+      "name": "Update finishedSet",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        560,
+        1248
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 1,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "385c3149-3623-4dd2-9022-770c32f82421",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              },
+              "leftValue": "={{ $json.finishedSet.length }}",
+              "rightValue": "={{2}}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f31b1f03-a07b-4b55-a32e-0df111f75357",
+      "name": "If All Finished",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -16,
+        1248
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f4ddef61-0633-4933-bb92-298b86351e34",
+      "name": "Webhook Callback Wait",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        272,
+        1248
+      ],
+      "webhookId": "5cd058b4-48c8-449a-9c09-959a5b8a2b48",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "content": "### Pseudo-Synchronously Wait for All Sub-Workflows to finish",
+        "height": 80,
+        "width": 315,
+        "color": 3
+      },
+      "id": "88ed349b-5797-42fd-a20f-c4912c599f29",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        944,
+        1232
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Start Multiple Sub-Workflows Asynchronously\n\n",
+        "height": 80,
+        "width": 390,
+        "color": 3
+      },
+      "id": "7dc320fe-ef97-4791-9433-7067a3cdfd83",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -656,
+        1040
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "model": "grok-3-mini",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatXAiGrok",
+      "typeVersion": 1,
+      "position": [
+        544,
+        1040
+      ],
+      "id": "23f059cb-776b-4de4-b615-74e8148e32ae",
+      "name": "xAI Grok Chat Model1",
+      "credentials": {
+        "xAiApi": {
+          "id": "h4tFboQjfTg820nT",
+          "name": "xAi account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.outputs }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a merge agent. You receive two JSON outputs — one from a transcript analysis agent and one from a peer comparison agent — and your job is to combine them into a single unified JSON object.\n\nDo NOT rewrite, summarize, or modify any content. Pass through all fields exactly as received. Your only job is structural: merge the two objects into one and perform HTTP Request.\n\nTake the transcript agent output (which contains ticker, quarter, executive_summary, key_insights, delta_vs_last_quarter) and the peer agent output (which contains industry_trends, competitive_landscape) and combine them into a single JSON object.\n\n## Output Schema\n{\n  \"ticker\": \"from transcript agent\",\n  \"quarter\": \"from transcript agent\",\n  \"executive_summary\": { ...from transcript agent, pass through exactly },\n  \"key_insights\": [ ...from transcript agent, pass through exactly ],\n  \"delta_vs_last_quarter\": { ...from transcript agent, pass through exactly },\n  \"industry_trends\": { ...from peer agent, pass through exactly },\n\"competitive_landscape\" : { ... create this table using data from other agents}\n}\n\nRules:\n- Do NOT modify any text, numbers, or values from either input.\n- Do NOT add commentary, analysis, or additional fields.\n- If either input is missing or malformed, pass through whatever is available and set missing sections to null.\n- Return only valid JSON. No markdown, no commentary, no backticks."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        1024
+      ],
+      "id": "36c7a9ff-6864-4b1b-971f-54af8a0ca056",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "requestId_transcript",
+              "type": "any"
+            },
+            {
+              "name": "output_ticker",
+              "type": "any"
+            },
+            {
+              "name": "requestId_peers",
+              "type": "any"
+            },
+            {
+              "name": "output_peers",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "74333b17-edac-4537-b2fb-3355567384c3",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -688,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Parallel execution \n### [Guide Used](https://n8n.io/workflows/2536-pattern-for-parallel-sub-workflow-execution-followed-by-wait-for-all-loop/)",
+        "height": 80
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -160,
+        1008
+      ],
+      "typeVersion": 1,
+      "id": "9f1d9dc3-c671-4cfd-98ca-cd4f2ebc963b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://codemachine.app.n8n.cloud/webhook/transcript-sub-workflow",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "callbackurl",
+              "value": "={{ $execution.resumeUrl }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "requestItemId",
+              "value": "={{ $json.requestId_transcript }}"
+            },
+            {
+              "name": "ticker",
+              "value": "={{ $json.output_ticker }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f0ef3ba3-ab14-49bd-916a-1ecdf3a878f1",
+      "name": "Start Transcript Sub-Workflow via Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -464,
+        1248
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://codemachine.app.n8n.cloud/webhook/peer-sub-workflow",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "callbackurl",
+              "value": "={{ $execution.resumeUrl }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "requestItemId",
+              "value": "={{ $('Start').item.json.requestId_peers  }}"
+            },
+            {
+              "name": "peers",
+              "value": "={{ $('Start').item.json.output_peers }}"
+            },
+            {
+              "name": "ticker",
+              "value": "={{ $('Start').item.json.output_ticker }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4ddde9e3-78f7-4241-97a3-381b5b5dd0ce",
+      "name": "Start Peer Analysis Sub-Workflow via Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -240,
+        1248
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"ticker\": { \"type\": \"string\" },\n    \"quarter\": { \"type\": \"string\" },\n    \"executive_summary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"beat_miss\": { \"type\": \"string\", \"enum\": [\"beat\", \"miss\", \"inline\"] },\n        \"metrics\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"label\": { \"type\": \"string\" },\n              \"value\": { \"type\": \"string\" },\n              \"yoy_change\": { \"type\": \"number\" }\n            },\n            \"required\": [\"label\", \"value\", \"yoy_change\"]\n          }\n        },\n        \"headline_takeaway\": { \"type\": \"string\" },\n        \"key_drivers\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"primary_driver\": { \"type\": \"string\" },\n        \"forward_guidance\": { \"type\": \"string\" }\n      },\n      \"required\": [\"beat_miss\", \"metrics\", \"headline_takeaway\", \"key_drivers\", \"primary_driver\", \"forward_guidance\"]\n    },\n    \"key_insights\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"signal\": { \"type\": \"string\", \"enum\": [\"bullish\", \"bearish\", \"neutral\"] },\n          \"title\": { \"type\": \"string\" },\n          \"detail\": { \"type\": \"string\" }\n        },\n        \"required\": [\"signal\", \"title\", \"detail\"]\n      }\n    },\n    \"delta_vs_last_quarter\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"comparison\": { \"type\": \"string\" },\n        \"changes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"type\": { \"type\": \"string\", \"enum\": [\"new\", \"tone_shift\", \"metric_change\", \"dropped\", \"unchanged\"] },\n              \"title\": { \"type\": \"string\" },\n              \"detail\": { \"type\": \"string\" }\n            },\n            \"required\": [\"type\", \"title\", \"detail\"]\n          }\n        }\n      },\n      \"required\": [\"comparison\", \"changes\"]\n    },\n    \"industry_trends\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"themes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"category\": { \"type\": \"string\", \"enum\": [\"dominant\", \"emerging\", \"persistent\"] },\n              \"title\": { \"type\": \"string\" },\n              \"detail\": { \"type\": \"string\" },\n              \"mentioned_by\": {\n                \"type\": \"array\",\n                \"items\": { \"type\": \"string\" }\n              }\n            },\n            \"required\": [\"category\", \"title\", \"detail\", \"mentioned_by\"]\n          }\n        },\n        \"sources\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\" }\n        }\n      },\n      \"required\": [\"themes\", \"sources\"]\n    },\n    \"competitive_landscape\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"companies\": {\n          \"type\": \"array\",\n          \"description\": \"Column headers: [target ticker, peer1, peer2, ...]. Same order used in all positions arrays.\",\n          \"items\": { \"type\": \"string\" }\n        },\n        \"offerings\": {\n          \"type\": \"array\",\n          \"description\": \"Each row is a segment that at least two companies share. Only include segments that appear in multiple companies' income statements.\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"category\": {\n                \"type\": \"string\",\n                \"description\": \"The common segment mapped across companies, e.g. 'Cloud Services', 'Advertising Revenue'\"\n              },\n              \"positions\": {\n                \"type\": \"array\",\n                \"description\": \"One entry per company (same order as companies array). Sourced from income statement data retrieved via the Financial Statement API.\",\n                \"items\": {\n                  \"type\": \"object\",\n                  \"properties\": {\n                    \"segment_name\": {\n                      \"type\": \"string\",\n                      \"description\": \"The exact segment label as it appears in that company's income statement, e.g. 'Amazon Web Services', 'Google Cloud'\"\n                    },\n                    \"revenue\": {\n                      \"type\": \"string\",\n                      \"description\": \"Most recent fiscal year revenue for this segment, e.g. '$105.5B'\"\n                    },\n                    \"revenue_prior_year\": {\n                      \"type\": \"string\",\n                      \"description\": \"Prior fiscal year revenue for this segment, e.g. '$90.8B'\"\n                    },\n                    \"yoy_growth\": {\n                      \"type\": \"number\",\n                      \"description\": \"Year-over-year growth rate calculated from the two fiscal years, e.g. '+16.2%'\"\n                    },\n                    \"has_segment\": {\n                      \"type\": \"boolean\",\n                      \"description\": \"Whether this company reports a comparable segment. If false, all other fields should be 'N/A'.\"\n                    }\n                  },\n                  \"required\": [\"segment_name\", \"revenue\", \"revenue_prior_year\", \"yoy_growth\", \"has_segment\"]\n                }\n              }\n            },\n            \"required\": [\"category\", \"positions\"]\n          }\n        },\n        \"data_source\": {\n          \"type\": \"string\",\n          \"description\": \"The URL pattern used to retrieve income statements\",\n          \"const\": \"https://raw.githubusercontent.com/gselez6761/agentic-ai-challenge-data/main/data/income_statements/{TICKER}/income_statement_{TICKER}.json\"\n        }\n      },\n      \"required\": [\"companies\", \"offerings\", \"data_source\"]\n    }\n  },\n  \"required\": [\"ticker\", \"quarter\", \"executive_summary\", \"key_insights\", \"delta_vs_last_quarter\", \"industry_trends\", \"competitive_landscape\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        704,
+        1040
+      ],
+      "id": "eb61ad09-f229-4a64-bfac-c388fa14106b",
+      "name": "format_final_json_response",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Acknowledge Finished": {
+      "main": [
+        [
+          {
+            "node": "If All Finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update finishedSet": {
+      "main": [
+        [
+          {
+            "node": "Acknowledge Finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If All Finished": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Webhook Callback Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Callback Wait": {
+      "main": [
+        [
+          {
+            "node": "Update finishedSet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "xAI Grok Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Start Transcript Sub-Workflow via Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Transcript Sub-Workflow via Webhook": {
+      "main": [
+        [
+          {
+            "node": "Start Peer Analysis Sub-Workflow via Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Peer Analysis Sub-Workflow via Webhook": {
+      "main": [
+        [
+          {
+            "node": "If All Finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format_final_json_response": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "ca45e47c532fd0657199f7168bf9a76ce36a6f0c05bddead2f2dd1016da4f7cd"
+  }
+}
